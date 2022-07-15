@@ -26,14 +26,12 @@ library(tidyverse)
 
 # reads in raw data
 wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole', na = c("", "NA")) %>%
-  select(c(`Annotated Sequence`,
-           `Modifications`,
-           `Master Protein Accessions`,
+  select(c(`Accession`,
            `Abundances (Grouped)`)) %>%
   na.omit()
 
 # ============== 2. Manipulates Data  ===============
-# S1 Data manipulation
+# manipulates data
 {
   # splits string into columns
   wp_raw_split <- str_split_fixed(as.character(wp_raw$`Abundances (Grouped)`), ';',16)
@@ -57,7 +55,7 @@ wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole', na = c("", "NA")) %>%
 # exports abundance matrix to csv
 fwrite(wp_clean, "Whole_Protein_Accession.csv", sep = ",")
 
-# ============== 4. Combines Uniprot Data To Combined Matrix =====
+# ============== 3. Combines Uniprot Data To Combined Matrix =====
 # reads in Gene Symbol table downloaded from Uniprot
 gene_symbol <- fread("Whole_Protein_Accession_Map.tsv")
 
@@ -69,7 +67,6 @@ gene_symbol <- gene_symbol[,-1]
 
 # splits gene symbol to return only the first 
 gene_symbol$`Gene Symbol` <- sapply(strsplit(gene_symbol$`Gene Symbol`," "), `[`, 1)
-
 
 # merges gene symbol column to main df
 wp_clean_gs <- wp_clean %>%
@@ -96,6 +93,8 @@ wp_clean_gs <- wp_clean %>%
   
   # removes unused columns
   select(-`GS_count`) 
+
+# ============== 4. Exports Abundance Matrix =====
 
 # exports grouped abundance matrix to csv
 fwrite(wp_clean_gs, "wp_grouped.csv", sep = ",")

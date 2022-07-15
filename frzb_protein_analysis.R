@@ -25,7 +25,7 @@ library(tidyverse)
 # ============== 1. Read & Selects from Excel File ======
 
 # reads in raw data
-wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole_NTU', na = c("", "NA")) %>%
+wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole', na = c("", "NA")) %>%
   select(c(`Accession`,
            `Abundances (Grouped)`)) %>%
   na.omit()

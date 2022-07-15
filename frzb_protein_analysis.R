@@ -26,7 +26,9 @@ library(tidyverse)
 
 # reads in raw data
 wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole', na = c("", "NA")) %>%
-  select(c(`Accession`,
+  select(c(`Annotated Sequence`,
+           `Modifications`,
+           `Master Protein Accessions`,
            `Abundances (Grouped)`)) %>%
   na.omit()
 

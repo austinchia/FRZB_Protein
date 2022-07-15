@@ -25,7 +25,7 @@ library(tidyverse)
 # ============== 1. Read & Selects from Excel File ======
 
 # reads in raw data
-wp_raw <- read_excel('NTU_Myopia_Dataset.xlsx', sheet = 'Whole_NTU', na = c("", "NA")) %>%
+wp_raw <- read_excel('FRZB_Dataset.xlsx', sheet = 'Whole_NTU', na = c("", "NA")) %>%
   select(c(`Accession`,
            `Abundances (Grouped)`)) %>%
   na.omit()
@@ -38,16 +38,63 @@ wp_raw <- read_excel('NTU_Myopia_Dataset.xlsx', sheet = 'Whole_NTU', na = c("", 
   
   # adds columns to original data
   wp_raw <- cbind(wp_raw, wp_raw_split)
-  colnames(wp_raw) <- c("Accession", "Abundances (Grouped)",
-                        "GC_S1",
-                        'S1_LI_1hr','S1_LI_6hr','S1_LI_9hr','S1_LI_D1','S1_LI_D14','S1_LI_D3','S1_LI_D7','S1_NL_0hr','S1_NL_1hr','S1_NL_6hr','S1_NL_9hr','S1_NL_D1','S1_NL_D14','S1_NL_D3','S1_NL_D7')
+  colnames(wp_raw) <- c("Accession",
+                        "Abundances (Grouped)",
+                        "S1F",
+                        'S1V',
+                        'S2F',
+                        'S2V',
+                        'S3F',
+                        'S3V')
   
   # removes abundance column
-  wp_raw <- select(wp_raw, -c(`Abundances (Grouped)`)) %>%
-    mutate(S1_LI_0hr = S1_NL_0hr) %>%
-    relocate(S1_LI_0hr, .after = `Accession`) %>%
-    relocate(S1_LI_D14, .after = `S1_LI_D7`) %>%
-    relocate(S1_NL_D14, .after = `S1_NL_D7`)
-  
+  wp_clean <- wp_raw[, -2]
+  wp_clean <- wp_clean %>% discard(~all(is.na(.) | . ==""))
 }
+
+# exports abundance matrix to csv
+fwrite(wp_clean, "Whole_Protein_Accession.csv", sep = ",")
+
+# ============== 4. Combines Uniprot Data To Combined Matrix =====
+# reads in Gene Symbol table downloaded from Uniprot
+gene_symbol <- fread("Whole_Protein_Accession_Map.tsv")
+
+# renames column headers
+colnames(gene_symbol) <- c("From", "Accession", "Gene Symbol") 
+
+# removes first column
+gene_symbol <- gene_symbol[,-1]
+
+# splits gene symbol to return only the first 
+gene_symbol$`Gene Symbol` <- sapply(strsplit(gene_symbol$`Gene Symbol`," "), `[`, 1)
+
+
+# merges gene symbol column to main df
+wp_clean_gs <- wp_clean %>%
+  
+  # merges gene symbol column to main df
+  left_join(gene_symbol,
+            by = "Accession") %>%
+  
+  distinct(`Accession`, .keep_all = TRUE) %>%
+
+  
+  # relocates columns and removes NAs
+  relocate(c(`Accession`,
+             `Gene Symbol`),
+           .before = `S1F`) %>%
+  na.omit() %>%
+  
+  # adds number to the end of duplicate gene symbols (ie Sptbn1-2)
+  group_by(`Gene Symbol`) %>%
+  mutate(`GS_count` = 1:n()) %>%
+  mutate(`Gene Symbol` = ifelse(`GS_count` == 1, 
+                                `Gene Symbol`, 
+                                paste0(`Gene Symbol`, "-", `GS_count`))) %>%
+  
+  # removes unused columns
+  select(-`GS_count`) 
+
+# exports grouped abundance matrix to csv
+fwrite(wp_clean_gs, "wp_grouped.csv", sep = ",")
 
